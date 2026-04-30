@@ -126,5 +126,3 @@ creating `<repo>/.scitex/<pkg-short>/`; production runs fall through to
   variable taxonomy.
 - Failure playbook `98_quality_01_failure-playbook.md` §8–§9 — the
   `2026-04-28` migration class-action and the test fallout pattern.
-
-<!-- EOF -->
