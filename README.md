@@ -32,6 +32,19 @@
 pip install scitex-config
 ```
 
+## Architecture
+
+```
+scitex-config/
+├── src/scitex_config/
+│   ├── __init__.py              # get_config, get_paths, PriorityConfig
+│   ├── _config.py               # YAML loader + dotted-path resolve()
+│   ├── _paths.py                # ~/.scitex/cache, function_cache, ...
+│   ├── _priority.py             # PriorityConfig: direct > yaml > env > default
+│   └── _bridge.py               # sys.modules alias -> scitex.config
+└── tests/
+```
+
 ## Quick Start
 
 ```python
@@ -74,6 +87,17 @@ db_url = pc.resolve(
 ```
 
 </details>
+
+## Demo
+
+```mermaid
+flowchart LR
+    D[direct=cli_arg] -->|wins if not None| R[PriorityConfig.resolve]
+    Y["yaml: config/app.yaml<br/>database.url"] -->|2nd| R
+    E["env: DATABASE_URL"] -->|3rd| R
+    F["default='sqlite:///dev.db'"] -->|fallback| R
+    R --> V["resolved value"]
+```
 
 ## Status
 
