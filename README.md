@@ -17,7 +17,6 @@
   <a href="https://pypi.org/project/scitex-config/"><img src="https://img.shields.io/pypi/v/scitex-config.svg" alt="PyPI"></a>
   <a href="https://pypi.org/project/scitex-config/"><img src="https://img.shields.io/pypi/pyversions/scitex-config.svg" alt="Python"></a>
   <a href="https://github.com/ywatanabe1989/scitex-config/actions/workflows/test.yml"><img src="https://github.com/ywatanabe1989/scitex-config/actions/workflows/test.yml/badge.svg" alt="Tests"></a>
-  <a href="https://github.com/ywatanabe1989/scitex-config/actions/workflows/install-test.yml"><img src="https://github.com/ywatanabe1989/scitex-config/actions/workflows/install-test.yml/badge.svg" alt="Install Test"></a>
   <a href="https://codecov.io/gh/ywatanabe1989/scitex-config"><img src="https://codecov.io/gh/ywatanabe1989/scitex-config/graph/badge.svg" alt="Coverage"></a>
   <a href="https://scitex-config.readthedocs.io/en/latest/"><img src="https://readthedocs.org/projects/scitex-config/badge/?version=latest" alt="Docs"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/license-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>

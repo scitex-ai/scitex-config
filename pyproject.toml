@@ -57,6 +57,11 @@ scitex-config = "scitex_config"
 testpaths = ["tests"]
 addopts = ["--disable-warnings"]
 
+[tool.coverage.run]
+parallel = true
+source = ["scitex_config"]
+concurrency = ["multiprocessing", "thread"]
+
 [tool.ruff]
 target-version = "py39"
 line-length = 88

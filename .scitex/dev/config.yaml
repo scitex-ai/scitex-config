@@ -1,0 +1,8 @@
+# SciTeX dev-tooling local config.
+# Tracked in git per playbook §4 / skill leaf 01_ecosystem_06_local-state-directories.md.
+audit:
+  root-whitelist:
+    files:
+      # Codecov configuration must live at repo root for the codecov.io
+      # service to discover it; whitelisted here to satisfy PS-103.
+      - codecov.yml
