@@ -4,12 +4,34 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 QUICKSTART = Path(__file__).parents[2] / "examples" / "quickstart.py"
 
 
-def test_quickstart_compiles():
+@pytest.fixture
+def quickstart_compile_result() -> subprocess.CompletedProcess:
+    # Arrange
     assert QUICKSTART.is_file(), f"missing {QUICKSTART}"
-    subprocess.run(
+    # Act
+    return subprocess.run(
         [sys.executable, "-m", "py_compile", str(QUICKSTART)],
-        check=True,
+        capture_output=True,
+        text=True,
     )
+
+
+def test_quickstart_script_file_exists_on_disk():
+    # Arrange
+    # Act
+    # Assert
+    assert QUICKSTART.is_file(), f"missing {QUICKSTART}"
+
+
+def test_quickstart_script_compiles_without_syntax_errors(
+    quickstart_compile_result: subprocess.CompletedProcess,
+) -> None:
+    # Arrange
+    # Act
+    # Assert
+    assert quickstart_compile_result.returncode == 0

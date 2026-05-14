@@ -9,12 +9,23 @@ import shutil
 import pytest
 
 
-def test_audit_all_clean():
+def _require_scitex_dev() -> None:
+    """Skip the caller if scitex-dev is not installed on PATH."""
     if shutil.which("scitex-dev") is None:
         pytest.skip(
             "scitex-dev not installed — add `scitex-dev[cli-audit]` "
             "to [project.optional-dependencies.dev]"
         )
+
+
+def test_audit_all_clean_for_scitex_config_runs_without_raising():
+    # Arrange
+    _require_scitex_dev()
     from scitex_dev.testing import audit_all_for_package
 
-    audit_all_for_package('scitex-config')
+    completed = False
+    # Act
+    audit_all_for_package("scitex-config")
+    completed = True
+    # Assert
+    assert completed
