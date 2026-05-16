@@ -95,71 +95,144 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_dotenv_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse a single .env file and merge into os.environ.</span>
+
+<span class="sd">    Existing env vars are preserved (not overridden) — process env wins</span>
+<span class="sd">    over .env file contents.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True if the file was successfully read and parsed, False on error.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="c1"># Skip empty lines and comments</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span> <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="c1"># Handle export prefix</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;export &quot;</span><span class="p">):</span>
+                    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
+                <span class="c1"># Parse key=value</span>
+                <span class="k">if</span> <span class="s2">&quot;=&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="c1"># Remove quotes if present</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
+                        <span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="c1"># Only set if not already in environment (env takes precedence)</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="load_dotenv">
 <a class="viewcode-back" href="../../api/scitex_config.html#scitex_config.load_dotenv">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">load_dotenv</span><span class="p">(</span><span class="n">dotenv_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load environment variables from .env file.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_dotenv</span><span class="p">(</span>
+    <span class="n">dotenv_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">walk_up</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">stop_at</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load environment variables from .env file(s).</span>
 
-<span class="sd">    Searches for .env file in the following order:</span>
-<span class="sd">    1. Explicit dotenv_path if provided</span>
-<span class="sd">    2. Current working directory</span>
-<span class="sd">    3. User home directory</span>
+<span class="sd">    Default behavior (``walk_up=False``, backward compatible):</span>
+<span class="sd">        Searches for .env file in the following order, loading the first match:</span>
+<span class="sd">        1. Explicit ``dotenv_path`` if provided</span>
+<span class="sd">        2. Current working directory (``cwd/.env``)</span>
+<span class="sd">        3. User home directory (``$HOME/.env``)</span>
+
+<span class="sd">    Parent-walking behavior (``walk_up=True``, opt-in):</span>
+<span class="sd">        Walks parent directories starting from ``cwd``, looking for ``.env``</span>
+<span class="sd">        at each level. Stops when reaching ``stop_at`` (or ``$HOME`` if not</span>
+<span class="sd">        given) or the filesystem root. **All** ``.env`` files found are loaded,</span>
+<span class="sd">        with the most-distant parent loaded first so that closer-to-cwd values</span>
+<span class="sd">        take precedence (closer .env wins). An existing process env var is</span>
+<span class="sd">        never overridden by any .env (process env &gt; closest .env &gt; ... &gt; root .env).</span>
+
+<span class="sd">        Note: ``walk_up=True`` is ignored if ``dotenv_path`` is explicitly given.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    dotenv_path : str, optional</span>
 <span class="sd">        Path to .env file. If None, searches default locations.</span>
+<span class="sd">    walk_up : bool, optional</span>
+<span class="sd">        If True (and ``dotenv_path`` not given), walk parent dirs from cwd.</span>
+<span class="sd">        Default False for backward compatibility — new callers should pass True.</span>
+<span class="sd">    stop_at : str or Path, optional</span>
+<span class="sd">        Directory at which to stop the upward walk (inclusive — its ``.env``</span>
+<span class="sd">        is considered). If None, stops at ``$HOME`` (or filesystem root if</span>
+<span class="sd">        ``$HOME`` is not a parent of cwd). Only used when ``walk_up=True``.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    bool</span>
-<span class="sd">        True if .env file was found and loaded, False otherwise.</span>
+<span class="sd">        True if at least one .env file was found and loaded, False otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">paths_to_try</span> <span class="o">=</span> <span class="p">[]</span>
-
     <span class="k">if</span> <span class="n">dotenv_path</span><span class="p">:</span>
-        <span class="n">paths_to_try</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">dotenv_path</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Default search paths</span>
-        <span class="n">paths_to_try</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.env&quot;</span><span class="p">,</span>
-                <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.env&quot;</span><span class="p">,</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths_to_try</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dotenv_path</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
-                        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                        <span class="c1"># Skip empty lines and comments</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span> <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
-                            <span class="k">continue</span>
-                        <span class="c1"># Handle export prefix</span>
-                        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;export &quot;</span><span class="p">):</span>
-                            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">7</span><span class="p">:]</span>
-                        <span class="c1"># Parse key=value</span>
-                        <span class="k">if</span> <span class="s2">&quot;=&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                            <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)</span>
-                            <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                            <span class="c1"># Remove quotes if present</span>
-                            <span class="k">if</span> <span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span>
-                                <span class="n">value</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
-                            <span class="p">):</span>
-                                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                            <span class="c1"># Only set if not already in environment (env takes precedence)</span>
-                            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
-                                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-                <span class="k">return</span> <span class="kc">True</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-                <span class="k">continue</span>
-    <span class="k">return</span> <span class="kc">False</span></div>
+            <span class="k">return</span> <span class="n">_parse_dotenv_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">walk_up</span><span class="p">:</span>
+        <span class="c1"># Legacy behavior: try cwd then $HOME, first hit wins.</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.env&quot;</span><span class="p">,</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.env&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">_parse_dotenv_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># walk_up=True: collect .env files from cwd up through parents.</span>
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">home</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">stop_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">stop_at</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span> <span class="k">if</span> <span class="n">stop_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">home</span>
+
+    <span class="n">collected</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">cwd</span>
+    <span class="n">visited</span><span class="p">:</span> <span class="nb">set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">resolved</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">resolved</span> <span class="ow">in</span> <span class="n">visited</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">visited</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+
+        <span class="n">candidate</span> <span class="o">=</span> <span class="n">current</span> <span class="o">/</span> <span class="s2">&quot;.env&quot;</span>
+        <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">candidate</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="n">collected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+
+        <span class="c1"># Stop condition: reached the configured stop directory.</span>
+        <span class="k">if</span> <span class="n">resolved</span> <span class="o">==</span> <span class="n">stop_dir</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="n">parent</span> <span class="o">==</span> <span class="n">current</span><span class="p">:</span>
+            <span class="c1"># Filesystem root reached.</span>
+            <span class="k">break</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">parent</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">collected</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># `collected` is in cwd→root order (closest first). Load in that order:</span>
+    <span class="c1"># `_parse_dotenv_file` skips keys already in os.environ, so the closest</span>
+    <span class="c1"># .env wins for any shared key. Process env (set before this call) wins</span>
+    <span class="c1"># over all .env files.</span>
+    <span class="n">loaded_any</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">collected</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_parse_dotenv_file</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">loaded_any</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">loaded_any</span></div>
 
 
 

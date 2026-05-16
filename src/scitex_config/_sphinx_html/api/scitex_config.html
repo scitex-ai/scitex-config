@@ -646,18 +646,36 @@ config dict takes higher priority than environment variables.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="scitex_config.load_dotenv">
-<span class="sig-prename descclassname"><span class="pre">scitex_config.</span></span><span class="sig-name descname"><span class="pre">load_dotenv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dotenv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_config/_PriorityConfig.html#load_dotenv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_config.load_dotenv" title="Link to this definition"></a></dt>
-<dd><p>Load environment variables from .env file.</p>
-<p>Searches for .env file in the following order:
-1. Explicit dotenv_path if provided
-2. Current working directory
-3. User home directory</p>
+<span class="sig-prename descclassname"><span class="pre">scitex_config.</span></span><span class="sig-name descname"><span class="pre">load_dotenv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dotenv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">walk_up</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/scitex_config/_PriorityConfig.html#load_dotenv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#scitex_config.load_dotenv" title="Link to this definition"></a></dt>
+<dd><p>Load environment variables from .env file(s).</p>
+<dl>
+<dt>Default behavior (<code class="docutils literal notranslate"><span class="pre">walk_up=False</span></code>, backward compatible):</dt><dd><p>Searches for .env file in the following order, loading the first match:
+1. Explicit <code class="docutils literal notranslate"><span class="pre">dotenv_path</span></code> if provided
+2. Current working directory (<code class="docutils literal notranslate"><span class="pre">cwd/.env</span></code>)
+3. User home directory (<code class="docutils literal notranslate"><span class="pre">$HOME/.env</span></code>)</p>
+</dd>
+<dt>Parent-walking behavior (<code class="docutils literal notranslate"><span class="pre">walk_up=True</span></code>, opt-in):</dt><dd><p>Walks parent directories starting from <code class="docutils literal notranslate"><span class="pre">cwd</span></code>, looking for <code class="docutils literal notranslate"><span class="pre">.env</span></code>
+at each level. Stops when reaching <code class="docutils literal notranslate"><span class="pre">stop_at</span></code> (or <code class="docutils literal notranslate"><span class="pre">$HOME</span></code> if not
+given) or the filesystem root. <strong>All</strong> <code class="docutils literal notranslate"><span class="pre">.env</span></code> files found are loaded,
+with the most-distant parent loaded first so that closer-to-cwd values
+take precedence (closer .env wins). An existing process env var is
+never overridden by any .env (process env &gt; closest .env &gt; … &gt; root .env).</p>
+<p>Note: <code class="docutils literal notranslate"><span class="pre">walk_up=True</span></code> is ignored if <code class="docutils literal notranslate"><span class="pre">dotenv_path</span></code> is explicitly given.</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>dotenv_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path to .env file. If None, searches default locations.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dotenv_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Path to .env file. If None, searches default locations.</p></li>
+<li><p><strong>walk_up</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If True (and <code class="docutils literal notranslate"><span class="pre">dotenv_path</span></code> not given), walk parent dirs from cwd.
+Default False for backward compatibility — new callers should pass True.</p></li>
+<li><p><strong>stop_at</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>Path</em><em>, </em><em>optional</em>) – Directory at which to stop the upward walk (inclusive — its <code class="docutils literal notranslate"><span class="pre">.env</span></code>
+is considered). If None, stops at <code class="docutils literal notranslate"><span class="pre">$HOME</span></code> (or filesystem root if
+<code class="docutils literal notranslate"><span class="pre">$HOME</span></code> is not a parent of cwd). Only used when <code class="docutils literal notranslate"><span class="pre">walk_up=True</span></code>.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>True if .env file was found and loaded, False otherwise.</p>
+<dd class="field-even"><p>True if at least one .env file was found and loaded, False otherwise.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
