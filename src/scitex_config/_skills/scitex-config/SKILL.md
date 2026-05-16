@@ -14,8 +14,6 @@ interfaces:
   http: 0
 ---
 
-> **Interfaces:** Python ⭐⭐⭐ (primary) · Skills ⭐⭐
-
 # scitex-config
 
 Layered configuration + path management for the SciTeX ecosystem.
