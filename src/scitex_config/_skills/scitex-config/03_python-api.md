@@ -41,9 +41,12 @@ object exposes `.resolve(key, default)` for the same cascade.
 
 ## `get_paths() → ScitexPaths`
 
-`$SCITEX_DIR`-aware path manager. Properties: `.logs`, `.cache`, `.sessions`,
-`.runtime`. Method `.resolve(category, user_supplied)` honors per-project
-overrides.
+`$SCITEX_DIR`-aware path manager. Properties: `.logs`, `.cache`, `.capture`,
+`.screenshots`, `.scholar`, `.writer`, and more. Method
+`.resolve(category, user_supplied)` returns the default or a user-supplied path.
+
+For per-package state resolution (SciTeX-ecosystem packages), use
+`from scitex_config._ecosystem import local_state` — see SKILL.md.
 
 ## Utilities
 

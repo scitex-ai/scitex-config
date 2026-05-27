@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "scitex-config"
 version = "0.3.4"
-description = "Configuration helpers (YAML + dotenv layered priority) — standalone module from the SciTeX ecosystem"
+description = "Configuration + path management with direct → yaml → env → default priority cascade and per-package state-dir resolver — standalone module from the SciTeX ecosystem"
 readme = "README.md"
 license = "AGPL-3.0-only"
 requires-python = ">=3.9"

@@ -33,7 +33,7 @@
 | # | Problem | Solution |
 |---|---------|----------|
 | 1 | **Config values come from many sources** (CLI flags, YAML files, env vars, hard-coded defaults) and ad-hoc precedence rules drift between scripts. | **`PriorityConfig.resolve()`** enforces a single `direct → yaml → env → default` cascade with a resolution log. |
-| 2 | **Runtime directories** (cache, logs, sessions) get hardcoded to `~/.cache/<pkg>/` and ignore the user's `$SCITEX_DIR`. | **`get_paths()` / `ScitexPaths`** roots every directory at `$SCITEX_DIR` (default `~/.scitex`) and exposes typed accessors. |
+| 2 | **Runtime directories** (cache, logs, sessions) get hardcoded to `~/.cache/<pkg>/` and ignore the user's `$SCITEX_DIR`. | **`get_paths()` / `ScitexPaths`** roots directories at `$SCITEX_DIR`; **`_ecosystem.local_state.runtime_path()`** resolves per-package `<pkg>/runtime/` paths canonically. |
 | 3 | **`.env` loading** is reinvented per project (cwd-only, no walk-up, silent override of process env). | **`load_dotenv(walk_up=True)`** walks parents to `$HOME`, never overrides existing process env, and returns a boolean status. |
 
 ## Installation
@@ -48,10 +48,13 @@ pip install scitex-config
 scitex-config/
 ├── src/scitex_config/
 │   ├── __init__.py              # get_config, get_paths, PriorityConfig
-│   ├── _config.py               # YAML loader + dotted-path resolve()
-│   ├── _paths.py                # ~/.scitex/cache, function_cache, ...
-│   ├── _priority.py             # PriorityConfig: direct > yaml > env > default
-│   └── _bridge.py               # sys.modules alias -> scitex.config
+│   ├── _ScitexConfig.py         # YAML loader + dotted-path resolve()
+│   ├── _PriorityConfig.py       # PriorityConfig: direct > yaml > env > default
+│   ├── _paths.py                # ScitexPaths: flat $SCITEX_DIR path manager
+│   ├── _ecosystem/              # SciTeX-internal helpers
+│   │   ├── _local_state.py      # Per-package <pkg>/runtime/ path resolver
+│   │   └── _env_registry.py     # SCITEX_* env var catalog
+│   └── default.yaml             # Built-in defaults
 └── tests/
 ```
 
@@ -65,6 +68,11 @@ log_level = config.resolve("logging.level", default="INFO")
 
 paths = cfg.get_paths()
 print(paths.cache)            # ~/.scitex/cache
+
+# SciTeX-ecosystem packages: use the per-package state resolver
+from scitex_config._ecosystem import local_state
+log_path = local_state.runtime_path("hpc", "dispatch.log")
+print(log_path)               # ~/.scitex/hpc/runtime/dispatch.log
 ```
 
 ## 1 Interfaces

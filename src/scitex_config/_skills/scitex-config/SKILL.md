@@ -79,6 +79,6 @@ user_dir = local_state.user_path("core", "logs")
 
 ## See also
 
-- General `01_arch_06_local-state-directories.md` — runtime path policy
-- General `01_arch_04_environment-variables.md` — `SCITEX_*` taxonomy
-- Failure playbook `98_quality_01_failure-playbook.md` §8–§9
+- General `01_ecosystem/06_local-state-directories.md` — runtime path policy
+- General `01_ecosystem/04_environment-variables.md` — `SCITEX_*` taxonomy
+- Failure playbook `09_quality/01_failure-playbook.md` §8–§9
