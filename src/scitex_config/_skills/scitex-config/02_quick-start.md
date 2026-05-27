@@ -36,6 +36,15 @@ print(paths.logs)                    # ~/.scitex/logs
 print(paths.cache)                   # ~/.scitex/cache
 ```
 
+For SciTeX-ecosystem packages, use the per-package state resolver:
+
+```python
+from scitex_config._ecosystem import local_state
+
+log_path = local_state.runtime_path("hpc", "dispatch.log")
+print(log_path)                      # ~/.scitex/hpc/runtime/dispatch.log
+```
+
 ## Next
 
 - [03_python-api.md](03_python-api.md) — full surface
