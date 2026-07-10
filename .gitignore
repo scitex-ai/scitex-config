@@ -26,3 +26,5 @@ docs/sphinx/api/
 !.scitex/dev/
 .scitex/dev/*
 !.scitex/dev/config.yaml
+/.worktrees/
+/GITIGNORED/
