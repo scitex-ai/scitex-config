@@ -1,5 +1,31 @@
 name: tests
-
+# MIGRATION: ubuntu-latest (GitHub-hosted) -> Spartan, via the org reusable
+# workflow (scitex-ai/.github). Same caller shape already proven green on
+# scitex-todo and scitex-scholar; the reusable pins
+# `runs-on: [self-hosted, Linux, X64, spartan-cpu]`.
+#
+# scitex-config has ZERO repo-level runners, so these jobs can ONLY be served
+# by the scitex-ai ORG runner pool (spartan-cpu-org-01/02). That is deliberate:
+# it exercises the org pool, which the fleet's other Spartan repos never do
+# (they all have dedicated repo-level runners that GitHub prefers).
+#
+# The org pool was previously UNUSABLE from these repos: its runner group had
+# `allows_public_repositories: false` while every scitex repo is public, so
+# GitHub silently EXCLUDED the runners — jobs sat `queued` forever, with no
+# error and no red X. Group `spartan-cpu` (id 3) is now `true`; dispatch was
+# verified end-to-end before this migration (assigned in ~3s to
+# spartan-cpu-org-02).
+#
+# NOTE — the local job previously ran `actions/setup-python` + `pip install -e .`.
+# That combination CANNOT be lifted onto Spartan by flipping `runs-on` alone:
+# the interpreter setup-python hands back is PEP 668 externally-managed, so pip
+# refuses to install into it (`error: externally-managed-environment`). The
+# reusable workflow installs into an explicit uv venv, which is why it works.
+#
+# New required-status-check contexts: "pytest-matrix / pytest-matrix-on-ubuntu-py<X.YY>"
+# (was: "pytest-matrix-on-ubuntu-py<X.YY>"). main's branch protection still
+# requires the OLD bare names and must be updated in the same change, or PRs
+# into main will block on checks that no longer report.
 on:
   push:
     branches: [main, develop]
@@ -9,34 +35,11 @@ on:
     - cron: "0 7 * * *"  # nightly 07:00 UTC
   workflow_dispatch:
 
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
-    name: pytest-matrix-on-ubuntu-py${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # Fallback chain: prefer [all,dev] so optional-dep code paths
-          # (yaml, fastmcp, textual) get exercised. Falls back to [dev] then
-          # plain editable so a packaging hiccup doesn't strand CI.
-          pip install -e ".[all,dev]" || pip install -e ".[dev]" || pip install -e .
-      - name: Run tests
-        run: |
-          pytest tests/ --cov=src/scitex_config --cov-report=xml --cov-report=term
-      - name: Upload coverage to Codecov
-        if: always() && matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
-          fail_ci_if_error: false
+  pytest-matrix:
+    uses: scitex-ai/.github/.github/workflows/pytest-matrix.yml@main
+    secrets: inherit
