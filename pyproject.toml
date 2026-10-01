@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "PyYAML",
-    "scitex-logging",
+    "scitex-logging>=0.2.2",
 ]
 
 [project.optional-dependencies]
