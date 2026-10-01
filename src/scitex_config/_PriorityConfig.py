@@ -20,7 +20,7 @@ IO
 
 Dependencies
 ------------
-- stdlib only (`os`, `pathlib`, `typing`).
+- stdlib (`os`, `pathlib`, `typing`) + `scitex-logging`.
 
 Based on priority-config by ywatanabe (https://github.com/ywatanabe1989/priority-config),
 incorporated into scitex for self-contained configuration management. Config-dict
@@ -32,7 +32,11 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 
+import scitex_logging as slogging
+
 from ._env_loader import parse_src_file
+
+plain = slogging.getPlainConsole(__name__)
 
 
 def _parse_dotenv_file(path: Path) -> bool:
@@ -324,13 +328,13 @@ class PriorityConfig:
     def print_resolutions(self) -> None:
         """Print how each config was resolved."""
         if not self.resolution_log:
-            print("No configurations resolved yet")
+            plain.emit("No configurations resolved yet")
             return
 
-        print("Configuration Resolution Log:")
-        print("-" * 50)
+        plain.emit("Configuration Resolution Log:")
+        plain.emit("-" * 50)
         for entry in self.resolution_log:
-            print(f"{entry['key']:<20} = {entry['value']:<20} ({entry['source']})")
+            plain.emit(f"{entry['key']:<20} = {entry['value']:<20} ({entry['source']})")
 
     def clear_log(self) -> None:
         """Clear resolution log."""
