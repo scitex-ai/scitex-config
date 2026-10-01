@@ -23,18 +23,19 @@ IO
 
 Dependencies
 ------------
-- stdlib only (``logging``, ``os``, ``re``, ``pathlib``, ``typing``).
+- stdlib only (``os``, ``re``, ``pathlib``, ``typing``) + ``scitex-logging``.
 """
 
 from __future__ import annotations
 
-import logging
 import os
 import re
 from pathlib import Path
 from typing import Dict, List
 
-logger = logging.getLogger(__name__)
+import scitex_logging as slogging
+
+log = slogging.getLogger(__name__)
 
 # Pattern to match: export VAR=value or VAR=value (with optional quotes)
 _ENV_PATTERN = re.compile(r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
@@ -96,7 +97,7 @@ def parse_src_file(filepath: Path) -> Dict[str, str]:
                     env_vars[name] = _parse_value(value)
 
     except Exception as e:
-        logger.warning(f"Failed to parse {filepath}: {e}")
+        log.warning(f"Failed to parse {filepath}: {e}")
 
     return env_vars
 
@@ -119,7 +120,7 @@ def load_env_from_path(path: str) -> Dict[str, str]:
     path_obj = Path(path).expanduser()
 
     if not path_obj.exists():
-        logger.warning(f"SCITEX_ENV_SRC path does not exist: {path}")
+        log.warning(f"SCITEX_ENV_SRC path does not exist: {path}")
         return loaded
 
     files_to_load: List[Path] = []
@@ -130,13 +131,13 @@ def load_env_from_path(path: str) -> Dict[str, str]:
     elif path_obj.is_file():
         files_to_load = [path_obj]
     else:
-        logger.warning(f"SCITEX_ENV_SRC is not a file or directory: {path}")
+        log.warning(f"SCITEX_ENV_SRC is not a file or directory: {path}")
         return loaded
 
     for src_file in files_to_load:
         env_vars = parse_src_file(src_file)
         if env_vars:
-            logger.info(f"Loaded {len(env_vars)} vars from {src_file.name}")
+            log.info(f"Loaded {len(env_vars)} vars from {src_file.name}")
             loaded.update(env_vars)
 
     return loaded
@@ -165,7 +166,7 @@ def load_scitex_env() -> int:
         os.environ[name] = value
 
     if loaded:
-        logger.info(f"SCITEX_ENV_SRC: Loaded {len(loaded)} environment variables")
+        log.info(f"SCITEX_ENV_SRC: Loaded {len(loaded)} environment variables")
 
     return len(loaded)
 

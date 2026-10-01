@@ -2,10 +2,7 @@ name: CLA Assistant
 
 # PILOT: org-level reusable-workflow caller (scitex-ai/.github, 2026-07-10).
 # Triggers/permissions preserved verbatim from the prior local file.
-# Reusable workflow defaults (owner_login=ywatanabe1989, default_branch=main)
-# already match this repo's prior hardcoded values; owner_allowlist IS
-# overridden below because this repo's allowlist has an extra entry
-# (LLEmacs) beyond the "bot*,ywatanabe1989" default.
+# Preserve main's contributor agreement policy: bot*,ywatanabe1989.
 
 on:
   issue_comment:
@@ -35,4 +32,4 @@ jobs:
     secrets:
       GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
     with:
-      owner_allowlist: "bot*,ywatanabe1989,LLEmacs"
+      owner_allowlist: "bot*,ywatanabe1989"

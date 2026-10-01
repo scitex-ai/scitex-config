@@ -33,30 +33,8 @@
 | # | Problem | Solution |
 |---|---------|----------|
 | 1 | **Config values come from many sources** (CLI flags, YAML files, env vars, hard-coded defaults) and ad-hoc precedence rules drift between scripts. | **`PriorityConfig.resolve()`** enforces a single `direct → yaml → env → default` cascade with a resolution log. |
-| 2 | **Runtime directories** (cache, logs, sessions) get hardcoded to `~/.cache/<pkg>/` and ignore the user's `$SCITEX_DIR`. | **`get_paths()` / `ScitexPaths`** roots directories at `$SCITEX_DIR`; **`_ecosystem.local_state.runtime_path()`** resolves per-package `<pkg>/runtime/` paths canonically. |
+| 2 | **Runtime directories** (cache, logs, sessions) get hardcoded to `~/.cache/<pkg>/` and ignore the user's `$SCITEX_DIR`. | `get_paths()` / `ScitexPaths` roots directories at **$SCITEX_DIR**; `_ecosystem.local_state.runtime_path()` resolves per-package `<pkg>/runtime/` paths canonically. |
 | 3 | **`.env` loading** is reinvented per project (cwd-only, no walk-up, silent override of process env). | **`load_dotenv(walk_up=True)`** walks parents to `$HOME`, never overrides existing process env, and returns a boolean status. |
-
-## Installation
-
-```bash
-pip install scitex-config
-```
-
-## Architecture
-
-```
-scitex-config/
-├── src/scitex_config/
-│   ├── __init__.py              # get_config, get_paths, PriorityConfig
-│   ├── _ScitexConfig.py         # YAML loader + dotted-path resolve()
-│   ├── _PriorityConfig.py       # PriorityConfig: direct > yaml > env > default
-│   ├── _paths.py                # ScitexPaths: flat $SCITEX_DIR path manager
-│   ├── _ecosystem/              # SciTeX-internal helpers
-│   │   ├── _local_state.py      # Per-package <pkg>/runtime/ path resolver
-│   │   └── _env_registry.py     # SCITEX_* env var catalog
-│   └── default.yaml             # Built-in defaults
-└── tests/
-```
 
 ## Quick Start
 
@@ -74,6 +52,50 @@ from scitex_config._ecosystem import local_state
 log_path = local_state.runtime_path("hpc", "dispatch.log")
 print(log_path)               # ~/.scitex/hpc/runtime/dispatch.log
 ```
+
+## Demo
+
+```mermaid
+flowchart LR
+    D[direct=cli_arg] -->|wins if not None| R[PriorityConfig.resolve]
+    Y["yaml: config/app.yaml<br/>database.url"] -->|2nd| R
+    E["env: DATABASE_URL"] -->|3rd| R
+    F["default='postgresql://localhost/dev'"] -->|fallback| R
+    R --> V["resolved value"]
+```
+
+<p align="center"><sub><b>Figure 1.</b> Demo. Priority cascade: direct argument wins, then YAML, then env var, then default.</sub></p>
+
+## Installation
+
+```bash
+uv pip install "scitex-config[all]"
+```
+
+<details>
+<summary><strong>Extras</strong></summary>
+
+| Extra | Enables |
+|-------|---------|
+| `all` | Everything below (`dev` + `docs`) |
+| `dev` | Test/lint tools (`pytest`, `ruff`, `scitex-dev`) |
+| `docs` | Sphinx build (`sphinx`, theme/parser extensions) |
+
+</details>
+
+## Architecture
+
+```mermaid
+flowchart LR
+    SRC[direct / yaml / env / default] --> PC[PriorityConfig.resolve]
+    PC --> VAL[resolved value]
+    PC --> LOG[resolution log]
+    ENV[.env files] --> OSenv[os.environ]
+    OSenv --> PC
+    YAML[default.yaml] --> SC[ScitexConfig]
+```
+
+<p align="center"><sub><b>Figure 2.</b> Architecture. Sources flow into PriorityConfig.resolve; ScitexConfig serves YAML-backed dotted-path reads.</sub></p>
 
 ## 1 Interfaces
 
@@ -106,20 +128,9 @@ db_url = pc.resolve(
 
 </details>
 
-## Demo
-
-```mermaid
-flowchart LR
-    D[direct=cli_arg] -->|wins if not None| R[PriorityConfig.resolve]
-    Y["yaml: config/app.yaml<br/>database.url"] -->|2nd| R
-    E["env: DATABASE_URL"] -->|3rd| R
-    F["default='postgresql://localhost/dev'"] -->|fallback| R
-    R --> V["resolved value"]
-```
-
 ## Status
 
-Standalone fork of `scitex.config`. Only dep is `PyYAML`. The umbrella
+Standalone fork of `scitex.config`. Core deps are `PyYAML` + `scitex-logging`. The umbrella
 package's `scitex.config` import path is preserved via a `sys.modules`-alias
 bridge.
 
