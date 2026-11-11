@@ -1,7 +1,7 @@
 ---
 description: |
   [TOPIC] Installation
-  [DETAILS] pip install scitex-config (no system deps, pure Python). Optional yaml extra brings PyYAML for load_yaml() / yaml-cascade resolution.
+  [DETAILS] pip install scitex-config (no system deps, pure Python). PyYAML and scitex-logging are mandatory runtime dependencies.
 tags: [scitex-config-installation]
 ---
 
@@ -13,8 +13,9 @@ tags: [scitex-config-installation]
 pip install scitex-config
 ```
 
-Pulls only `pyyaml` (for YAML config) and `python-dotenv` (for `load_dotenv()`).
-No system deps; pure-Python.
+Runtime requirements are `PyYAML>=6.0.2` and `scitex-logging>=0.2.2`.
+The package supplies its own dotenv parser; `python-dotenv` is not required.
+YAML support is part of the base installation, with no `yaml` extra.
 
 ## Verify
 
@@ -26,7 +27,7 @@ python -c "from scitex_config import PriorityConfig, get_config, get_paths; prin
 ## Editable install (development)
 
 ```bash
-git clone https://github.com/ywatanabe1989/scitex-config
+git clone https://github.com/scitex-ai/scitex-config
 cd scitex-config
 pip install -e .
 ```
