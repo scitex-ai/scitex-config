@@ -7,6 +7,24 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-11-12
+
+### Fixed
+
+- Require PyYAML 6.0.2 or newer so minimum dependency resolution does not
+  select obsolete releases that cannot build on supported Python versions.
+- Correct README and shipped skill examples for dictionary configuration,
+  explicit YAML paths, direct values, environment names and default caching.
+  Document the actual mandatory dependencies and built-in dotenv parser.
+
+### Changed
+
+- Admit release jobs through the shared organization CPU policy, validate tag
+  inputs as data, require main ancestry and pin publishing helpers to the
+  source revision used by the build. Preserve verified-image, full test,
+  entry-point and OIDC publication gates.
+- Supersede only older pull-request checks; retain protected-branch runs.
+
 ## [0.3.7] - 2026-10-02
 
 ### Fixed
