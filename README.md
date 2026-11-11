@@ -57,9 +57,9 @@ print(log_path)               # ~/.scitex/hpc/runtime/dispatch.log
 
 ```mermaid
 flowchart LR
-    D[direct=cli_arg] -->|wins if not None| R[PriorityConfig.resolve]
+    D[direct_val=cli_arg] -->|wins if not None| R[ScitexConfig.resolve]
     Y["yaml: config/app.yaml<br/>database.url"] -->|2nd| R
-    E["env: DATABASE_URL"] -->|3rd| R
+    E["env: SCITEX_DATABASE_URL"] -->|3rd| R
     F["default='postgresql://localhost/dev'"] -->|fallback| R
     R --> V["resolved value"]
 ```
@@ -87,15 +87,16 @@ uv pip install "scitex-config[all]"
 
 ```mermaid
 flowchart LR
-    SRC[direct / yaml / env / default] --> PC[PriorityConfig.resolve]
+    SRC[direct / dictionary / env / default] --> PC[PriorityConfig.resolve]
     PC --> VAL[resolved value]
     PC --> LOG[resolution log]
     ENV[.env files] --> OSenv[os.environ]
     OSenv --> PC
-    YAML[default.yaml] --> SC[ScitexConfig]
+    YAML[default.yaml or explicit YAML] --> SC[ScitexConfig]
+    SC --> VAL
 ```
 
-<p align="center"><sub><b>Figure 2.</b> Architecture. Sources flow into PriorityConfig.resolve; ScitexConfig serves YAML-backed dotted-path reads.</sub></p>
+<p align="center"><sub><b>Figure 2.</b> Architecture. PriorityConfig resolves dictionary inputs; ScitexConfig supplies YAML-backed dotted-path reads.</sub></p>
 
 ## 1 Interfaces
 
@@ -109,21 +110,24 @@ import scitex_config as cfg
 
 # YAML-based (recommended)
 config = cfg.get_config()
-print(config.MY_KEY)
+print(config.get("logging.level", default="INFO"))
 log_level = config.resolve("logging.level", default="INFO")
 
 # Path resolution
 paths = cfg.get_paths()
 paths.function_cache       # ~/.scitex/cache/function/...
 
-# Layered priority cascade (direct > yaml > env > default)
-pc = cfg.PriorityConfig(yaml_path="config/app.yaml")
-db_url = pc.resolve(
-    direct=cli_arg,
-    key="database.url",
-    env_var="DATABASE_URL",
+# Explicit YAML file; nested keys use dot notation.
+config = cfg.ScitexConfig(config_path="config/app.yaml")
+db_url = config.resolve(
+    "database.url",
+    direct_val=None,  # pass an explicit override here when supplied
     default="postgresql://localhost/dev",
 )
+
+# Dictionary primitive: direct > dictionary > environment > default.
+pc = cfg.PriorityConfig(config_dict={"port": 8000}, env_prefix="APP_")
+port = pc.resolve("port", direct_val=None, default=3000, type=int)
 ```
 
 </details>

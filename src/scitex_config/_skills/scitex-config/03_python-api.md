@@ -22,22 +22,22 @@ from scitex_config import (
 
 ## `PriorityConfig`
 
-The cascade primitive. Resolves a value from `direct → yaml[key] → env → default`.
+The dictionary primitive: `direct_val → config_dict[key] → environment → default`.
+Keys are flat, including literal dotted keys. Environment names use `env_prefix`
+and uppercase the key, replacing dots with underscores.
 
 ```python
-pc = PriorityConfig(yaml_path="config/app.yaml")
-value = pc.resolve(
-    direct=cli_arg,         # explicit override (e.g., from --flag)
-    key="section.subkey",   # YAML lookup (dot-notation)
-    env_var="MY_VAR",       # env-var fallback
-    default=None,           # final fallback
-)
+pc = PriorityConfig(config_dict={"port": 8000}, env_prefix="APP_")
+value = pc.resolve("port", direct_val=None, default=3000, type=int)
 ```
 
-## `get_config() → ScitexConfig`
+## `ScitexConfig(config_path=None)`, `get_config(config_path=None)`
 
-Process-wide cached config. Auto-discovers `./config/*.yaml`. The returned
-object exposes `.resolve(key, default)` for the same cascade.
+Use `ScitexConfig(config_path="config/app.yaml")` for nested YAML data and
+`.resolve("section.subkey", direct_val=None, default=None)` for the cascade.
+An existing explicit file is loaded; otherwise the packaged `default.yaml` is
+used. `get_config()` caches the default instance; supplying `config_path`
+creates a new instance. There is no `./config/*.yaml` directory discovery.
 
 ## `get_paths() → ScitexPaths`
 
