@@ -3,7 +3,7 @@ name: scitex-config
 description: |
   [WHAT] Configuration primitives — `PriorityConfig` (direct → yaml → env → default cascade), `ScitexConfig`/`get_config` (YAML config), `ScitexPaths`/`get_paths` ($SCITEX_DIR path manager), and ecosystem-internal `_ecosystem.local_state` (project-scope-aware path resolver).
   [WHEN] Reading any tunable, resolving runtime/cache/log directories, or honoring project-level config overrides in a SciTeX package.
-  [HOW] `from scitex_config import PriorityConfig, get_config, get_paths` — call `.resolve(direct=..., key=..., env_var=..., default=...)` for the cascade.
+  [HOW] `from scitex_config import PriorityConfig, get_config, get_paths` — call `.resolve("key", direct_val=..., default=...)` for the cascade.
 tags: [scitex-config]
 primary_interface: python
 interfaces:
@@ -30,12 +30,16 @@ Layered configuration + path management for the SciTeX ecosystem.
 ## Public API
 
 ```python
-from scitex_config import PriorityConfig, get_config, get_paths
+from scitex_config import PriorityConfig, ScitexConfig, get_config, get_paths
 
-# direct → yaml → env → default cascade
-pc = PriorityConfig(yaml_path="config/app.yaml")
-db = pc.resolve(direct=cli_arg, key="database.url",
-                env_var="DATABASE_URL", default="postgresql://localhost/dev")
+# Flat dictionary: direct → dictionary → environment → default.
+pc = PriorityConfig(config_dict={"port": 8000}, env_prefix="APP_")
+port = pc.resolve("port", direct_val=None, default=3000, type=int)
+
+# YAML file: nested keys are flattened into dot notation.
+config = ScitexConfig(config_path="config/app.yaml")
+db = config.resolve("database.url", direct_val=None,
+                    default="postgresql://localhost/dev")
 
 # Same cascade for nested keys via the config object.
 config = get_config()
@@ -62,6 +66,19 @@ user_dir = local_state.user_path("core", "logs")
 
 `pkg-short` strips the `scitex-` prefix (`scitex-dataset` → `dataset`).
 **Not stable** — may change without a major bump; for scitex-* authors only.
+
+## Behavior and validation
+
+`PriorityConfig` accepts a flat dictionary; environment names combine its
+`env_prefix` with the uppercased key (dots become underscores). `ScitexConfig`
+loads an explicit existing YAML file, otherwise the packaged `default.yaml`.
+`get_config()` caches that default; `get_config(config_path=...)` creates a new
+instance. It does not discover `./config/*.yaml`.
+
+Sources: [`PriorityConfig`](../../_PriorityConfig.py) and
+[`ScitexConfig`](../../_ScitexConfig.py). Existing behavioral controls:
+[dictionary/environment precedence](../../../../tests/scitex_config/test__PriorityConfig.py)
+and [YAML/default resolution](../../../../tests/scitex_config/test__ScitexConfig.py).
 
 ## When to use
 

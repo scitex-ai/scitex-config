@@ -3,8 +3,8 @@ name: release
 # Tag-driven release on the selected self-hosted runner and verified CI SIF.
 # All three Python test legs must pass before building, PyPI OIDC publication,
 # and the automatic GitHub Release. Main promotion remains a separate PR.
-# Existing immutable tags may be retried through workflow_dispatch.
-# CI_RUNS_ON selects the runner; SCITEX_CI_SIF/APPTAINER select the image/runtime,
+# Correct failed candidates through a new qualified version; keep tags immutable.
+# Shared admission selects the CPU pool; SCITEX_CI_SIF/APPTAINER select the image/runtime,
 # and SCITEX_CI_SIF_SHA256 verifies the image before executing any inner script.
 
 on:
@@ -24,8 +24,18 @@ env:
   RUN_E2E: "1"
 
 jobs:
+  runner-admission:
+    uses: scitex-ai/.github/.github/workflows/runner-admission.yml@d7d96c34d68cdfbb5503a933591f7748b5aa30ee
+    permissions: {}
+    with:
+      runs_on: '["self-hosted","Linux","X64","scitex-org-cpu"]'
+
   test:
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    needs: [runner-admission]
+    runs-on: >-
+      ${{ needs.runner-admission.outputs.native_authorized == 'true'
+          && fromJSON('{"group":"Organization","labels":["self-hosted","Linux","X64","scitex-org-cpu"]}')
+          || fromJSON('["ubuntu-latest"]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -33,17 +43,26 @@ jobs:
     steps:
       - name: Resolve version
         id: ver
+        env:
+          SCITEX_CONFIG_RELEASE_TAG: ${{ inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            [[ "$GITHUB_REF" == refs/tags/* ]]
             v="${GITHUB_REF#refs/tags/}"
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            v="$SCITEX_CONFIG_RELEASE_TAG"
           else
-            v="${{ inputs.version }}"
+            exit 1
           fi
-          echo "version=$v" >> "$GITHUB_OUTPUT"
+          [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          printf 'version=%s\n' "$v" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.ver.outputs.version }}
           fetch-depth: 0
+      - name: Refuse tags outside main
+        run: git merge-base --is-ancestor HEAD origin/main
       # The verified image supplies the interpreter. Install this tagged
       # checkout and all declared test dependencies into an owned writable venv
       # so clean subprocess fixtures use the candidate instead of baked Config.
@@ -51,24 +70,42 @@ jobs:
         run: bash .github/ci/exec-in-sif.sh run-in-sif.sh ${{ matrix.python-version }}
 
   build:
-    needs: test
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    needs: [test, runner-admission]
+    runs-on: >-
+      ${{ needs.runner-admission.outputs.native_authorized == 'true'
+          && fromJSON('{"group":"Organization","labels":["self-hosted","Linux","X64","scitex-org-cpu"]}')
+          || fromJSON('["ubuntu-latest"]') }}
     outputs:
       version: ${{ steps.ver.outputs.version }}
+      source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - name: Resolve version
         id: ver
+        env:
+          SCITEX_CONFIG_RELEASE_TAG: ${{ inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            [[ "$GITHUB_REF" == refs/tags/* ]]
             v="${GITHUB_REF#refs/tags/}"
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            v="$SCITEX_CONFIG_RELEASE_TAG"
           else
-            v="${{ inputs.version }}"
+            exit 1
           fi
-          echo "version=$v" >> "$GITHUB_OUTPUT"
+          [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          printf 'version=%s\n' "$v" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.ver.outputs.version }}
           fetch-depth: 0
+      - name: Record the tagged build source
+        id: source
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor HEAD origin/main
+          config_release_source_sha="$(git rev-parse HEAD)"
+          printf 'sha=%s\n' "$config_release_source_sha" >> "$GITHUB_OUTPUT"
       # Build INSIDE the SIF (no setup-python on the bare Spartan node).
       # build-in-sif.sh installs the `build` frontend into a writable --target
       # inside the SIF, then `python -m build` → dist/. fail-loud on empty dist.
@@ -81,8 +118,11 @@ jobs:
           path: dist/
 
   publish:
-    needs: build
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    needs: [build, runner-admission]
+    runs-on: >-
+      ${{ needs.runner-admission.outputs.native_authorized == 'true'
+          && fromJSON('{"group":"Organization","labels":["self-hosted","Linux","X64","scitex-org-cpu"]}')
+          || fromJSON('["ubuntu-latest"]') }}
     environment:
       name: pypi
       url: https://pypi.org/p/scitex-config
@@ -94,6 +134,8 @@ jobs:
       # Need the repo checked out so .github/ci/exec-in-sif.sh +
       # publish-in-sif.sh are on disk (the build job uploaded only dist/).
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.source_sha }}
       - uses: actions/download-artifact@v4
         with:
           name: dist
@@ -104,8 +146,11 @@ jobs:
         run: bash .github/ci/exec-in-sif.sh publish-in-sif.sh 3.12
 
   release:
-    needs: [build, publish]
-    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '["self-hosted","Linux","X64","scitex-ci"]') }}
+    needs: [build, publish, runner-admission]
+    runs-on: >-
+      ${{ needs.runner-admission.outputs.native_authorized == 'true'
+          && fromJSON('{"group":"Organization","labels":["self-hosted","Linux","X64","scitex-org-cpu"]}')
+          || fromJSON('["ubuntu-latest"]') }}
     permissions:
       contents: write
     steps:

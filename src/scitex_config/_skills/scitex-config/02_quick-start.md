@@ -10,17 +10,18 @@ tags: [scitex-config-quick-start]
 ## The cascade
 
 ```python
-from scitex_config import PriorityConfig
+from scitex_config import PriorityConfig, ScitexConfig
 
-pc = PriorityConfig(yaml_path="config/app.yaml")
+# Flat dictionary primitive; APP_PORT is consulted if "port" is absent.
+pc = PriorityConfig(config_dict={"port": 8000}, env_prefix="APP_")
+port = pc.resolve("port", direct_val=None, default=3000, type=int)
 
-# Resolves in order: cli_arg → yaml["database"]["url"] → $DATABASE_URL → fallback
-db_url = pc.resolve(
-    direct=cli_arg,                        # highest precedence
-    key="database.url",                    # yaml lookup (dot-notation)
-    env_var="DATABASE_URL",                # env override
-    default="postgresql://localhost/dev",  # last resort
+# Explicit YAML file; absent files use the packaged default instead.
+config = ScitexConfig(config_path="config/app.yaml")
+db_url = config.resolve(
+    "database.url", direct_val=None, default="postgresql://localhost/dev",
 )
+# Order: direct value → YAML key → SCITEX_DATABASE_URL → fallback.
 ```
 
 ## Default config + paths
@@ -28,7 +29,7 @@ db_url = pc.resolve(
 ```python
 from scitex_config import get_config, get_paths
 
-config = get_config()                # loads ./config/*.yaml automatically
+config = get_config()                # cached packaged default.yaml
 log_level = config.resolve("logging.level", default="INFO")
 
 paths = get_paths()
