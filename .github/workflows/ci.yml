@@ -26,7 +26,8 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede only older PR attempts; retain protected-branch qualification.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   pytest-matrix:
