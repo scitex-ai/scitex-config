@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-11-12
+
+### Fixed
+
+- Render the environment prefix as a code literal in both constructor docstrings, so downstream Sphinx builds do not interpret it as an unresolved link. Configuration behavior is unchanged.
+
 ## [0.3.8] - 2026-11-12
 
 ### Fixed
