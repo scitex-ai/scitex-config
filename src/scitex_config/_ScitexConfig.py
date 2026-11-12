@@ -125,7 +125,7 @@ class ScitexConfig:
         config_path : str or Path, optional
             Path to custom YAML config file. If None, uses default.yaml.
         env_prefix : str
-            Prefix for environment variables (default: "SCITEX_")
+            Prefix for environment variables (default: ``SCITEX_``).
         """
         # Load .env file first
         load_dotenv()
