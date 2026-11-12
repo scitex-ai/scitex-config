@@ -236,7 +236,7 @@ class PriorityConfig:
         config_dict : dict, optional
             Dictionary with configuration values
         env_prefix : str
-            Prefix for environment variables (e.g., "SCITEX_")
+            Prefix for environment variables (e.g., ``SCITEX_``).
         auto_uppercase : bool
             Whether to uppercase keys for env lookup
         """
