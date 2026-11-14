@@ -7,6 +7,11 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Defer logging initialization until a loader emits a message or an explicit
+  configuration-resolution report is requested. Plain imports, value
+  resolution and successful dotenv parsing no longer initialize logging.
+  Preserve requested diagnostics and report output.
+
 ## [0.3.9] - 2026-11-12
 
 ### Fixed
