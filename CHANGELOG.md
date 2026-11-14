@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-11-15
+
 ### Fixed
 
 - Render configuration-resolution report values as text after masking, so
