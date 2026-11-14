@@ -7,6 +7,10 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-11-14
+
+### Fixed
+
 - Defer logging initialization until a loader emits a message or an explicit
   configuration-resolution report is requested. Plain imports, value
   resolution and successful dotenv parsing no longer initialize logging.
