@@ -32,11 +32,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 
-import scitex_logging as slogging
-
 from ._env_loader import parse_src_file
-
-plain = slogging.getPlainConsole(__name__)
 
 
 def _parse_dotenv_file(path: Path) -> bool:
@@ -327,6 +323,9 @@ class PriorityConfig:
 
     def print_resolutions(self) -> None:
         """Print how each config was resolved."""
+        from scitex_logging import getPlainConsole
+
+        plain = getPlainConsole(__name__)
         if not self.resolution_log:
             plain.emit("No configurations resolved yet")
             return
