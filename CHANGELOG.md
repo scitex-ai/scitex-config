@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Render configuration-resolution report values as text after masking, so
+  lists, dictionaries and missing values do not raise formatting errors and
+  booleans retain their readable names. Resolution values and masking stay unchanged.
+
 ## [0.3.10] - 2026-11-14
 
 ### Fixed

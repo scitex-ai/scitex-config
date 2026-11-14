@@ -333,7 +333,7 @@ class PriorityConfig:
         plain.emit("Configuration Resolution Log:")
         plain.emit("-" * 50)
         for entry in self.resolution_log:
-            plain.emit(f"{entry['key']:<20} = {entry['value']:<20} ({entry['source']})")
+            plain.emit(f"{entry['key']:<20} = {entry['value']!s:<20} ({entry['source']})")
 
     def clear_log(self) -> None:
         """Clear resolution log."""
