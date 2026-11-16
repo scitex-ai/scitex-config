@@ -30,10 +30,9 @@ from __future__ import annotations
 
 import os
 import re
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List
-
-from functools import lru_cache
 
 
 @lru_cache(maxsize=1)
@@ -42,6 +41,13 @@ def _get_logger():
     import scitex_logging as slogging
 
     return slogging.getLogger(__name__)
+
+
+def _emit_diagnostics(pending: list) -> None:
+    """Emit collected diagnostics only after the caller completes its work."""
+    for level, message in pending:
+        getattr(_get_logger(), level)(message)
+
 
 # Pattern to match: export VAR=value or VAR=value (with optional quotes)
 _ENV_PATTERN = re.compile(r"^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
@@ -86,6 +92,13 @@ def parse_src_file(filepath: Path) -> Dict[str, str]:
     dict
         Dictionary of variable names to values.
     """
+    pending = []
+    result = _parse_src_file(filepath, pending)
+    _emit_diagnostics(pending)
+    return result
+
+
+def _parse_src_file(filepath: Path, pending: list) -> Dict[str, str]:
     env_vars: Dict[str, str] = {}
 
     try:
@@ -103,7 +116,7 @@ def parse_src_file(filepath: Path) -> Dict[str, str]:
                     env_vars[name] = _parse_value(value)
 
     except Exception as e:
-        _get_logger().warning(f"Failed to parse {filepath}: {e}")
+        pending.append(("warning", f"Failed to parse {filepath}: {e}"))
 
     return env_vars
 
@@ -122,11 +135,18 @@ def load_env_from_path(path: str) -> Dict[str, str]:
     dict
         All loaded environment variables.
     """
+    pending = []
+    result = _collect_env_from_path(path, pending)
+    _emit_diagnostics(pending)
+    return result
+
+
+def _collect_env_from_path(path: str, pending: list) -> Dict[str, str]:
     loaded: Dict[str, str] = {}
     path_obj = Path(path).expanduser()
 
     if not path_obj.exists():
-        _get_logger().warning(f"SCITEX_ENV_SRC path does not exist: {path}")
+        pending.append(("warning", f"SCITEX_ENV_SRC path does not exist: {path}"))
         return loaded
 
     files_to_load: List[Path] = []
@@ -137,13 +157,17 @@ def load_env_from_path(path: str) -> Dict[str, str]:
     elif path_obj.is_file():
         files_to_load = [path_obj]
     else:
-        _get_logger().warning(f"SCITEX_ENV_SRC is not a file or directory: {path}")
+        pending.append(
+            ("warning", f"SCITEX_ENV_SRC is not a file or directory: {path}")
+        )
         return loaded
 
     for src_file in files_to_load:
-        env_vars = parse_src_file(src_file)
+        env_vars = _parse_src_file(src_file, pending)
         if env_vars:
-            _get_logger().info(f"Loaded {len(env_vars)} vars from {src_file.name}")
+            pending.append(
+                ("info", f"Loaded {len(env_vars)} vars from {src_file.name}")
+            )
             loaded.update(env_vars)
 
     return loaded
@@ -165,15 +189,19 @@ def load_scitex_env() -> int:
     if not env_src:
         return 0
 
-    loaded = load_env_from_path(env_src)
+    pending = []
+    loaded = _collect_env_from_path(env_src, pending)
 
     # Apply to current process environment
     for name, value in loaded.items():
         os.environ[name] = value
 
     if loaded:
-        _get_logger().info(f"SCITEX_ENV_SRC: Loaded {len(loaded)} environment variables")
+        pending.append(
+            ("info", f"SCITEX_ENV_SRC: Loaded {len(loaded)} environment variables")
+        )
 
+    _emit_diagnostics(pending)
     return len(loaded)
 
 
