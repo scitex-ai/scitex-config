@@ -150,3 +150,46 @@ class TestLoadScitexEnv:
 
 
 # EOF
+
+
+@pytest.fixture(params=["file", "directory-with-error"])
+def logging_source(request, tmp_path):
+    import sys
+
+    setting = tmp_path / "settings.src"
+    setting.write_text("SCITEX_LOGGING_LEVEL=ERROR\nOWNED_ENV_VALUE=42\n")
+    selected = setting
+    if request.param == "directory-with-error":
+        (tmp_path / "00-invalid.src").write_bytes(b"\xff")
+        selected = tmp_path
+    environment = dict(os.environ)
+    environment.pop("SCITEX_LOGGING_LEVEL", None)
+    environment["SCITEX_ENV_SRC"] = str(selected)
+    environment["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
+    return sys.executable, environment
+
+
+def test_env_settings_precede_first_diagnostic(logging_source):
+    # Arrange
+    import json
+    import logging
+    import subprocess
+
+    executable, environment = logging_source
+    program = (
+        "from scitex_config import load_scitex_env;"
+        "count=load_scitex_env();import logging,json,os;"
+        'print(json.dumps({"count":count,"level":logging.root.level,"value":os.environ["OWNED_ENV_VALUE"]}))'
+    )
+    # Act
+    result = subprocess.run(
+        [executable, "-c", program],
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=20,
+        check=True,
+    )
+    data = json.loads(result.stdout)
+    # Assert
+    assert data == {"count": 2, "level": logging.ERROR, "value": "42"}

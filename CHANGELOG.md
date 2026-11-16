@@ -7,6 +7,12 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Apply loaded environment settings before emitting loader diagnostics, so a
+  fresh process honors its configured logging level from the first message.
+  Standalone parsing/loading messages, values and counts remain available.
+
 ## [0.3.11] - 2026-11-15
 
 ### Fixed
