@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.12] - 2026-11-16
+
 ### Fixed
 
 - Apply loaded environment settings before emitting loader diagnostics, so a
